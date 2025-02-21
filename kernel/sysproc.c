@@ -80,7 +80,29 @@ sys_sleep(void)
 int
 sys_pgaccess(void)
 {
-  // lab pgtbl: your code here.
+  uint64 start_addr; //第一个用户页面起始虚拟地址
+  int page_num; //页面数
+  uint64 mask_addr; //缓冲区的用户地址
+  if(argaddr(0, &start_addr) < 0)
+    return -1;
+  if(argint(1, &page_num) < 0)
+    return -1;
+  if(argaddr(2, &mask_addr) < 0)
+    return -1;
+  if(page_num>32)
+    return -1; //扫描页数上限
+  uint mask=0;
+
+  struct proc *p = myproc();
+  pte_t* pte=walk(p->pagetable,start_addr,0);
+  for(int i=0;i<page_num;i++){
+    if((pte[i] & PTE_V)&&(pte[i] & PTE_A)){
+      mask=mask|(1<<i);
+      pte[i]^=PTE_A;
+    }
+  }
+  if(copyout(p->pagetable, mask_addr, (char*)&mask, sizeof(mask))<0)
+    return -1;
   return 0;
 }
 #endif
@@ -107,3 +129,4 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
