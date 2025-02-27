@@ -77,8 +77,17 @@ usertrap(void)
     exit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
+  if(which_dev == 2){
+    p->ticks_since_last++;
+    if(p->exist_alarm==0&&p->ticks_since_last!=0&&p->ticks==p->ticks_since_last){ //时间到
+      p->exist_alarm=1; //避免重复进入
+      *p->alarm_frame=*p->trapframe;
+      p->trapframe->epc=(uint64)p->alarm_handler; //trapframe 结构体用于保存进程在中断、系统调用或异常发生时的状态信息，包括寄存器的值、程序计数器等,epc 是 trapframe 结构中的一个字段，表示 程序计数器（EPC = Exception Program Counter）。程序计数器保存当前执行的指令的地址。当一个中断或系统调用发生时，程序计数器会被保存在 epc 中，用来恢复进程的执行。
+      p->ticks_since_last=0;
+    }
     yield();
+  }
+    
 
   usertrapret();
 }
